@@ -1,4 +1,4 @@
-
+import random
 #
 #   Example function to be implemented for
 #       Single important function is next_best
@@ -69,6 +69,24 @@ def chess_bot(player_sequence, board, time_budget, **kwargs):
 
         return deplacements
 
+    def roi(pos_x, pos_y, Bo, color_sign):
+        mouvements = [
+            (-1, -1), (-1, 0), (-1, 1),  # Haut gauche, haut, haut droite
+            (0, -1),          (0, 1),   # Gauche, droite
+            (1, -1), (1, 0), (1, 1)     # Bas gauche, bas, bas droite
+        ]
+        deplacements = []
+
+        for dx, dy in mouvements:
+            nx, ny = pos_x + dx, pos_y + dy
+            if 0 <= nx <= 7 and 0 <= ny <= 7:  # Vérifie que la position reste sur le plateau
+                piece = Bo[nx][ny]
+                if piece == 0 or piece * color_sign < 0:  # Case vide ou occupée par une pièce ennemie
+                    deplacements.append((nx, ny))
+
+        return deplacements
+
+
     def pos_pions(Bo, color_sign):
         positions = []
         for x in range(8):
@@ -85,39 +103,28 @@ def chess_bot(player_sequence, board, time_budget, **kwargs):
                     positions.append((x, y))
         return positions
 
+    def pos_roi(Bo, color_sign):
+
+        for x in range(8):
+            for y in range(8):
+                if Bo[x][y] == 5 * color_sign:  # Roi blanc = 5, roi noir = -5
+                    return x, y
+        return None  # Si le roi n'est pas trouvé
+
     # Trouver les pions et les cavaliers
-    pions = pos_pions(B, color_sign)
+    #pions = pos_pions(B, color_sign)
     cavaliers = pos_cavaliers(B, color_sign)
 
     # Choisir aléatoirement entre les pions et les cavaliers
-    '''
-    if not pions and not cavaliers:
-        return None  # Aucun mouvement possible
-    elif not pions:
-        piece_type = "cavalier"
-    elif not cavaliers:
-        piece_type = "pion"
-    else:
-        piece_type = random.choice(["pion", "cavalier"])
 
-    if piece_type == "pion":
-        pion_pos = random.choice(pions)
-        deplacements = pion(pion_pos[0], pion_pos[1], B, color_sign)
-        if deplacements:
-            choix_deplacement = random.choice(deplacements)
-            return pion_pos, choix_deplacement
-    elif piece_type == "cavalier":
-        cavalier_pos = random.choice(cavaliers)
-        deplacements = cavalier(cavalier_pos[0], cavalier_pos[1], B, color_sign)
-        if deplacements:
-            choix_deplacement = random.choice(deplacements)
-            return cavalier_pos, choix_deplacement
-    '''
-    piece_type = "cavalier"
+
+
     cavalier_pos = random.choice(cavaliers)
     deplacements = cavalier(cavalier_pos[0], cavalier_pos[1], B, color_sign)
     choix_deplacement = random.choice(deplacements)
     return cavalier_pos, choix_deplacement
+
+
 
 
 
