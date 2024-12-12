@@ -1,4 +1,4 @@
-import random
+
 #
 #   Example function to be implemented for
 #       Single important function is next_best
@@ -122,6 +122,39 @@ def chess_bot(player_sequence, board, time_budget, **kwargs):
 
 
 
+
+
+
+def possible_moves_rook(board, x, y, color):
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+    return get_moves_directions(board, x, y, color, directions)
+
+def possible_moves_bishop(board, x, y, color):
+    directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+    return get_moves_directions(board, x, y, color, directions)
+
+def possible_moves_queen(board, x, y, color):
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]
+    return get_moves_directions(board, x, y, color, directions)
+
+def get_moves_directions(board, x, y, color, directions):
+    moves = []
+    for dx, dy in directions:
+        nx, ny = x + dx, y + dy
+        while 0 <= nx < 8 and 0 <= ny < 8:
+            target = board[nx][ny]
+            if target == '':
+                moves.append((nx, ny))
+            elif target[1] != color:
+                # TODO: Check si ca vaut la peine de capturer
+                moves.append((nx, ny))
+                break
+            else:
+                break  # piece de meme couleur
+
+            nx, ny = nx + dx, ny + dy
+
+    return moves
 
 
 #   Example how to register the function
