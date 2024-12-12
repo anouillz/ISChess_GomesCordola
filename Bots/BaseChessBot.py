@@ -38,78 +38,6 @@ def chess_bot(player_sequence, board, time_budget, **kwargs):
                 case "pb": B[x][y] = -6
                 case _: B[x][y] = 0
 
-    def cavalier(pos_x, pos_y, Bo, color_sign):
-        mouvements = [
-            (2, 1), (2, -1), (-2, 1), (-2, -1),
-            (1, 2), (1, -2), (-1, 2), (-1, -2)
-        ]
-        deplacements = []
-        for dx, dy in mouvements:
-            nx, ny = pos_x + dx, pos_y + dy
-            if 0 <= nx <= 7 and 0 <= ny <= 7:
-                piece = Bo[nx][ny]
-                if piece == 0 or (piece * color_sign < 0):  # Vide ou pièce ennemie
-                    deplacements.append((nx, ny))
-        return deplacements
-
-    def pion(pos_x, pos_y, Bo, color_sign):
-        deplacements = []
-        direction = -1 if color_sign == 1 else 1
-
-        # Avance simple
-        if 0 <= pos_x + direction <= 7 and Bo[pos_x + direction][pos_y] == 0:
-            deplacements.append((pos_x + direction, pos_y))
-
-        # Captures diagonales
-        for dy in [-1, 1]:
-            nx, ny = pos_x + direction, pos_y + dy
-            if 0 <= nx <= 7 and 0 <= ny <= 7:
-                if Bo[nx][ny] * color_sign < 0:  # Pièce ennemie
-                    deplacements.append((nx, ny))
-
-        return deplacements
-
-    def roi(pos_x, pos_y, Bo, color_sign):
-        mouvements = [
-            (-1, -1), (-1, 0), (-1, 1),  # Haut gauche, haut, haut droite
-            (0, -1),          (0, 1),   # Gauche, droite
-            (1, -1), (1, 0), (1, 1)     # Bas gauche, bas, bas droite
-        ]
-        deplacements = []
-
-        for dx, dy in mouvements:
-            nx, ny = pos_x + dx, pos_y + dy
-            if 0 <= nx <= 7 and 0 <= ny <= 7:  # Vérifie que la position reste sur le plateau
-                piece = Bo[nx][ny]
-                if piece == 0 or piece * color_sign < 0:  # Case vide ou occupée par une pièce ennemie
-                    deplacements.append((nx, ny))
-
-        return deplacements
-
-
-    def pos_pions(Bo, color_sign):
-        positions = []
-        for x in range(8):
-            for y in range(8):
-                if Bo[x][y] == 6 * color_sign:
-                    positions.append((x, y))
-        return positions
-
-    def pos_cavaliers(Bo, color_sign):
-        positions = []
-        for x in range(8):
-            for y in range(8):
-                if Bo[x][y] == 2 * color_sign:
-                    positions.append((x, y))
-        return positions
-
-    def pos_roi(Bo, color_sign):
-
-        for x in range(8):
-            for y in range(8):
-                if Bo[x][y] == 5 * color_sign:  # Roi blanc = 5, roi noir = -5
-                    return x, y
-        return None  # Si le roi n'est pas trouvé
 
     # Trouver les pions et les cavaliers
     #pions = pos_pions(B, color_sign)
@@ -162,6 +90,79 @@ def get_moves_directions(board, x, y, color, directions):
             nx, ny = nx + dx, ny + dy
 
     return moves
+
+def cavalier(pos_x, pos_y, Bo, color_sign):
+    mouvements = [
+        (2, 1), (2, -1), (-2, 1), (-2, -1),
+        (1, 2), (1, -2), (-1, 2), (-1, -2)
+    ]
+    deplacements = []
+    for dx, dy in mouvements:
+        nx, ny = pos_x + dx, pos_y + dy
+        if 0 <= nx <= 7 and 0 <= ny <= 7:
+            piece = Bo[nx][ny]
+            if piece == 0 or (piece * color_sign < 0):  # Vide ou pièce ennemie
+                deplacements.append((nx, ny))
+    return deplacements
+
+def pion(pos_x, pos_y, Bo, color_sign):
+    deplacements = []
+    direction = -1 if color_sign == 1 else 1
+
+    # Avance simple
+    if 0 <= pos_x + direction <= 7 and Bo[pos_x + direction][pos_y] == 0:
+        deplacements.append((pos_x + direction, pos_y))
+
+    # Captures diagonales
+    for dy in [-1, 1]:
+        nx, ny = pos_x + direction, pos_y + dy
+        if 0 <= nx <= 7 and 0 <= ny <= 7:
+            if Bo[nx][ny] * color_sign < 0:  # Pièce ennemie
+                deplacements.append((nx, ny))
+
+    return deplacements
+
+def roi(pos_x, pos_y, Bo, color_sign):
+    mouvements = [
+        (-1, -1), (-1, 0), (-1, 1),  # Haut gauche, haut, haut droite
+        (0, -1),          (0, 1),   # Gauche, droite
+        (1, -1), (1, 0), (1, 1)     # Bas gauche, bas, bas droite
+    ]
+    deplacements = []
+
+    for dx, dy in mouvements:
+        nx, ny = pos_x + dx, pos_y + dy
+        if 0 <= nx <= 7 and 0 <= ny <= 7:  # Vérifie que la position reste sur le plateau
+            piece = Bo[nx][ny]
+            if piece == 0 or piece * color_sign < 0:  # Case vide ou occupée par une pièce ennemie
+                deplacements.append((nx, ny))
+
+    return deplacements
+
+
+def pos_pions(Bo, color_sign):
+    positions = []
+    for x in range(8):
+        for y in range(8):
+            if Bo[x][y] == 6 * color_sign:
+                positions.append((x, y))
+    return positions
+
+def pos_cavaliers(Bo, color_sign):
+    positions = []
+    for x in range(8):
+        for y in range(8):
+            if Bo[x][y] == 2 * color_sign:
+                positions.append((x, y))
+    return positions
+
+def pos_roi(Bo, color_sign):
+
+    for x in range(8):
+        for y in range(8):
+            if Bo[x][y] == 5 * color_sign:  # Roi blanc = 5, roi noir = -5
+                return x, y
+    return None  # Si le roi n'est pas trouvé
 
 
 #   Example how to register the function
