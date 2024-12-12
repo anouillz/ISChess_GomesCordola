@@ -42,11 +42,6 @@ def chess_bot(player_sequence, board, time_budget, **kwargs):
     #x1,y1,x2,y2 = meilleur_deplacement
     return (0,1),(2,2)
 
-
-
-
-
-
 def cavalier(pos_x, pos_y, Bo, color_sign):
     mouvements = [
         (2, 1), (2, -1), (-2, 1), (-2, -1),
@@ -177,13 +172,10 @@ def pos_reine(Bo, color_sign):
     return positions
 
 def get_moves_directions(Bo, pos_x, pos_y, color_sign, directions):
-    """
-    Génère les déplacements possibles dans les directions spécifiées.
-    """
     moves = []
     for dx, dy in directions:
         nx, ny = pos_x + dx, pos_y + dy
-        while 0 <= nx < 8 and 0 <= ny < 8:  # Vérifie que la position reste sur le plateau
+        while 0 <= nx < 8 and 0 <= ny < 8:
             piece = Bo[nx][ny]
             if piece == 0:  # Case vide
                 moves.append((nx, ny))
@@ -195,6 +187,51 @@ def get_moves_directions(Bo, pos_x, pos_y, color_sign, directions):
             nx += dx
             ny += dy
     return moves
+
+def king_in_danger(board, color):
+    # board est le plateau après le déplacement effectué
+
+    # position du roi
+    king_pos = None
+    for x in range(8):
+        for y in range(8):
+            if (board[x][y] == 5 and color == 'w') or (board[x][y] == -5 and color == 'b'):
+                king_pos = (x, y)
+                break
+        if king_pos:
+            break
+
+    if not king_pos:
+        return 0  #roi pas trouvé
+
+    # checker si une pièce ennemie peut capturer le roi
+    opponent_color = 'b' if color == 'w' else 'w'
+    opponent_sign = -1 if color == 'w' else 1
+
+    for x in range(8):
+        for y in range(8):
+            piece = board[x][y]
+            if piece * opponent_sign > 0:  # Piece ennemie
+                if  piece == opponent_sign * 1:
+                    if king_pos in tour(x, y, board, opponent_color):
+                        return -500
+                elif piece == opponent_sign * 2:
+                    if king_pos in cavalier(x, y, board, opponent_sign):
+                        return -500
+                elif piece == opponent_sign * 3:
+                    if king_pos in fou(x, y, board, opponent_color):
+                        return -500
+                elif piece == opponent_sign * 4:
+                    if king_pos in reine(x, y, board, opponent_color):
+                        return -500
+                elif piece == opponent_sign * 6:
+                    if king_pos in pion(x, y, board, opponent_sign):
+                        return -500
+                elif piece == opponent_sign * 5:
+                    if king_pos in roi(x, y, board, opponent_sign):
+                        return -500
+
+    return 0  # Roi pas en danger
 
 
 #   Example how to register the function
