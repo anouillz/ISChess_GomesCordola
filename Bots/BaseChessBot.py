@@ -39,57 +39,13 @@ def chess_bot(player_sequence, board, time_budget, **kwargs):
                 case _: B[x][y] = 0
 
 
-    # Trouver les pions et les cavaliers
-    #pions = pos_pions(B, color_sign)
-    cavaliers = pos_cavaliers(B, color_sign)
-
-    # Choisir aléatoirement entre les pions et les cavaliers
-
-
-
-    cavalier_pos = random.choice(cavaliers)
-    deplacements = cavalier(cavalier_pos[0], cavalier_pos[1], B, color_sign)
-    choix_deplacement = random.choice(deplacements)
-    return cavalier_pos, choix_deplacement
+    #x1,y1,x2,y2 = meilleur_deplacement
+    return (0,1),(2,2)
 
 
 
 
 
-
-
-
-
-def possible_moves_rook(board, x, y, color):
-    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-    return get_moves_directions(board, x, y, color, directions)
-
-def possible_moves_bishop(board, x, y, color):
-    directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
-    return get_moves_directions(board, x, y, color, directions)
-
-def possible_moves_queen(board, x, y, color):
-    directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]
-    return get_moves_directions(board, x, y, color, directions)
-
-def get_moves_directions(board, x, y, color, directions):
-    moves = []
-    for dx, dy in directions:
-        nx, ny = x + dx, y + dy
-        while 0 <= nx < 8 and 0 <= ny < 8:
-            target = board[nx][ny]
-            if target == '':
-                moves.append((nx, ny))
-            elif target[1] != color:
-                # TODO: Check si ca vaut la peine de capturer
-                moves.append((nx, ny))
-                break
-            else:
-                break  # piece de meme couleur
-
-            nx, ny = nx + dx, ny + dy
-
-    return moves
 
 def cavalier(pos_x, pos_y, Bo, color_sign):
     mouvements = [
@@ -139,6 +95,19 @@ def roi(pos_x, pos_y, Bo, color_sign):
 
     return deplacements
 
+def tour(pos_x, pos_y, Bo, color_sign):
+    """
+    Génère les déplacements possibles pour une tour.
+    """
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Haut, Bas, Gauche, Droite
+    return get_moves_directions(Bo, pos_x, pos_y, color_sign, directions)
+
+def fou(pos_x, pos_y, Bo, color_sign):
+    """
+    Génère les déplacements possibles pour un fou.
+    """
+    directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]  # Diagonales
+    return get_moves_directions(Bo, pos_x, pos_y, color_sign, directions)
 
 def pos_pions(Bo, color_sign):
     positions = []
@@ -163,6 +132,69 @@ def pos_roi(Bo, color_sign):
             if Bo[x][y] == 5 * color_sign:  # Roi blanc = 5, roi noir = -5
                 return x, y
     return None  # Si le roi n'est pas trouvé
+
+def pos_tour(Bo, color_sign):
+    """
+    Trouve toutes les positions des tours alliées.
+    """
+    positions = []
+    for x in range(8):
+        for y in range(8):
+            if Bo[x][y] == 1 * color_sign:  # Tour blanche = 1, tour noire = -1
+                positions.append((x, y))
+    return positions
+
+def pos_fou(Bo, color_sign):
+    """
+    Trouve toutes les positions des fous alliés.
+    """
+    positions = []
+    for x in range(8):
+        for y in range(8):
+            if Bo[x][y] == 3 * color_sign:  # Fou blanc = 3, fou noir = -3
+                positions.append((x, y))
+    return positions
+
+def reine(pos_x, pos_y, Bo, color_sign):
+    """
+    Génère les déplacements possibles pour une reine.
+    """
+    directions = [
+        (-1, 0), (1, 0), (0, -1), (0, 1),  # Directions de la tour
+        (-1, -1), (-1, 1), (1, -1), (1, 1)  # Directions du fou
+    ]
+    return get_moves_directions(Bo, pos_x, pos_y, color_sign, directions)
+
+def pos_reine(Bo, color_sign):
+    """
+    Trouve toutes les positions des reines alliées.
+    """
+    positions = []
+    for x in range(8):
+        for y in range(8):
+            if Bo[x][y] == 4 * color_sign:  # Reine blanche = 4, reine noire = -4
+                positions.append((x, y))
+    return positions
+
+def get_moves_directions(Bo, pos_x, pos_y, color_sign, directions):
+    """
+    Génère les déplacements possibles dans les directions spécifiées.
+    """
+    moves = []
+    for dx, dy in directions:
+        nx, ny = pos_x + dx, pos_y + dy
+        while 0 <= nx < 8 and 0 <= ny < 8:  # Vérifie que la position reste sur le plateau
+            piece = Bo[nx][ny]
+            if piece == 0:  # Case vide
+                moves.append((nx, ny))
+            elif piece * color_sign < 0:  # Pièce ennemie
+                moves.append((nx, ny))
+                break
+            else:  # Pièce alliée
+                break
+            nx += dx
+            ny += dy
+    return moves
 
 
 #   Example how to register the function
