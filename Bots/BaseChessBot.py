@@ -38,14 +38,6 @@ def chess_bot(player_sequence, board, time_budget, **kwargs):
                 case "pb": B[x][y] = -6
                 case _: B[x][y] = 0
 
-    cavaliers = pos_cavaliers(B, color_sign)
-    tour = pos_tour(B, color_sign)
-    roi = pos_roi(B, color_sign)
-    fou = pos_fou(B, color_sign)
-    reine = pos_reine(B, color_sign)
-    pions = pos_pions(B, color_sign)
-
-
 
     #x1,y1,x2,y2 = meilleur_deplacement
     return (0,1),(2,2)
@@ -66,10 +58,9 @@ def cavalier(pos_x, pos_y, Bo, color_sign):
             if piece == 0 or (piece * color_sign < 0):  # Vide ou pièce ennemie
                 deplacements.append((nx, ny))
     return deplacements
-
 def pion(pos_x, pos_y, Bo, color_sign):
     deplacements = []
-    direction = -1 if color_sign == 1 else 1
+    direction = 1
 
     # Avance simple
     if 0 <= pos_x + direction <= 7 and Bo[pos_x + direction][pos_y] == 0:
@@ -83,7 +74,6 @@ def pion(pos_x, pos_y, Bo, color_sign):
                 deplacements.append((nx, ny))
 
     return deplacements
-
 def roi(pos_x, pos_y, Bo, color_sign):
     mouvements = [
         (-1, -1), (-1, 0), (-1, 1),  # Haut gauche, haut, haut droite
@@ -100,14 +90,12 @@ def roi(pos_x, pos_y, Bo, color_sign):
                 deplacements.append((nx, ny))
 
     return deplacements
-
 def tour(pos_x, pos_y, Bo, color_sign):
     """
     Génère les déplacements possibles pour une tour.
     """
     directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Haut, Bas, Gauche, Droite
     return get_moves_directions(Bo, pos_x, pos_y, color_sign, directions)
-
 def reine(pos_x, pos_y, Bo, color_sign):
     """
     Génère les déplacements possibles pour une reine.
@@ -117,14 +105,12 @@ def reine(pos_x, pos_y, Bo, color_sign):
         (-1, -1), (-1, 1), (1, -1), (1, 1)  # Directions du fou
     ]
     return get_moves_directions(Bo, pos_x, pos_y, color_sign, directions)
-
 def fou(pos_x, pos_y, Bo, color_sign):
     """
     Génère les déplacements possibles pour un fou.
     """
     directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]  # Diagonales
     return get_moves_directions(Bo, pos_x, pos_y, color_sign, directions)
-
 
 # trouver les positions des pièces
 def pos_pions(Bo, color_sign):
@@ -134,7 +120,6 @@ def pos_pions(Bo, color_sign):
             if Bo[x][y] == 6 * color_sign:
                 positions.append((x, y))
     return positions
-
 def pos_cavaliers(Bo, color_sign):
     positions = []
     for x in range(8):
@@ -142,7 +127,6 @@ def pos_cavaliers(Bo, color_sign):
             if Bo[x][y] == 2 * color_sign:
                 positions.append((x, y))
     return positions
-
 def pos_roi(Bo, color_sign):
 
     for x in range(8):
@@ -150,7 +134,6 @@ def pos_roi(Bo, color_sign):
             if Bo[x][y] == 5 * color_sign:  # Roi blanc = 5, roi noir = -5
                 return x, y
     return None  # Si le roi n'est pas trouvé
-
 def pos_tour(Bo, color_sign):
     """
     Trouve toutes les positions des tours alliées.
@@ -161,7 +144,6 @@ def pos_tour(Bo, color_sign):
             if Bo[x][y] == 1 * color_sign:  # Tour blanche = 1, tour noire = -1
                 positions.append((x, y))
     return positions
-
 def pos_fou(Bo, color_sign):
     """
     Trouve toutes les positions des fous alliés.
@@ -172,7 +154,6 @@ def pos_fou(Bo, color_sign):
             if Bo[x][y] == 3 * color_sign:  # Fou blanc = 3, fou noir = -3
                 positions.append((x, y))
     return positions
-
 def pos_reine(Bo, color_sign):
     """
     Trouve toutes les positions des reines alliées.
@@ -183,7 +164,6 @@ def pos_reine(Bo, color_sign):
             if Bo[x][y] == 4 * color_sign:  # Reine blanche = 4, reine noire = -4
                 positions.append((x, y))
     return positions
-
 def get_moves_directions(Bo, pos_x, pos_y, color_sign, directions):
     moves = []
     for dx, dy in directions:
@@ -201,7 +181,9 @@ def get_moves_directions(Bo, pos_x, pos_y, color_sign, directions):
             ny += dy
     return moves
 
-def king_in_danger(board, color_sign):
+
+#heurisitcs
+def heur_king_in_danger(board, color_sign):
     # board est le plateau après le déplacement effectué
     # color_sign est 1 pour les blancs et -1 pour les noirs
     opponent_sign = -color_sign
@@ -238,6 +220,33 @@ def king_in_danger(board, color_sign):
                         return -500
 
     return 0  # Roi pas en danger
+
+def heur_capture(board, color_sign, x, y, piece_id):
+    score = 0
+    piece_possible_movement = []
+    match piece_id:
+        case 1:
+            piece_possible_movement = tour(x, y, board, color_sign)
+        case 2:
+            piece_possible_movement = cavalier(x, y, board, color_sign)
+        case 3:
+            piece_possible_movement = fou(x, y, board, color_sign)
+        case 4:
+            piece_possible_movement = reine(x, y, board, color_sign)
+        case 5:
+            piece_possible_movement = roi(x, y, board, color_sign)
+        case 6:
+            piece_possible_movement = pion(x, y, board, color_sign)
+
+    for t in range(len(piece_possible_movement)):
+        nx, ny = piece_possible_movement[t]
+        if board[nx][ny] * color_sign < 0:  # si un ennemi est dans une des cases
+            # TODO si chaque piece a un poids, donner + de score à celui qui a une différence de poids negative + grande (Ex: un pion qui mange la reine a + de score qu'une reine qui mange un pion)
+            score += 200
+            return score, (x,y,nx,ny)
+
+
+    return score, (x, y, x, y)
 
 
 #   Example how to register the function
