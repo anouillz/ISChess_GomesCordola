@@ -38,10 +38,21 @@ def chess_bot(player_sequence, board, time_budget, **kwargs):
                 case "pb": B[x][y] = -6
                 case _: B[x][y] = 0
 
+    cavaliers = pos_cavaliers(B, color_sign)
+    tour = pos_tour(B, color_sign)
+    roi = pos_roi(B, color_sign)
+    fou = pos_fou(B, color_sign)
+    reine = pos_reine(B, color_sign)
+    pions = pos_pions(B, color_sign)
+
+
 
     #x1,y1,x2,y2 = meilleur_deplacement
     return (0,1),(2,2)
 
+
+
+# trouver les déplacements possibles pour chaque pièce
 def cavalier(pos_x, pos_y, Bo, color_sign):
     mouvements = [
         (2, 1), (2, -1), (-2, 1), (-2, -1),
@@ -97,6 +108,16 @@ def tour(pos_x, pos_y, Bo, color_sign):
     directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Haut, Bas, Gauche, Droite
     return get_moves_directions(Bo, pos_x, pos_y, color_sign, directions)
 
+def reine(pos_x, pos_y, Bo, color_sign):
+    """
+    Génère les déplacements possibles pour une reine.
+    """
+    directions = [
+        (-1, 0), (1, 0), (0, -1), (0, 1),  # Directions de la tour
+        (-1, -1), (-1, 1), (1, -1), (1, 1)  # Directions du fou
+    ]
+    return get_moves_directions(Bo, pos_x, pos_y, color_sign, directions)
+
 def fou(pos_x, pos_y, Bo, color_sign):
     """
     Génère les déplacements possibles pour un fou.
@@ -104,6 +125,8 @@ def fou(pos_x, pos_y, Bo, color_sign):
     directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]  # Diagonales
     return get_moves_directions(Bo, pos_x, pos_y, color_sign, directions)
 
+
+# trouver les positions des pièces
 def pos_pions(Bo, color_sign):
     positions = []
     for x in range(8):
@@ -150,16 +173,6 @@ def pos_fou(Bo, color_sign):
                 positions.append((x, y))
     return positions
 
-def reine(pos_x, pos_y, Bo, color_sign):
-    """
-    Génère les déplacements possibles pour une reine.
-    """
-    directions = [
-        (-1, 0), (1, 0), (0, -1), (0, 1),  # Directions de la tour
-        (-1, -1), (-1, 1), (1, -1), (1, 1)  # Directions du fou
-    ]
-    return get_moves_directions(Bo, pos_x, pos_y, color_sign, directions)
-
 def pos_reine(Bo, color_sign):
     """
     Trouve toutes les positions des reines alliées.
@@ -188,41 +201,34 @@ def get_moves_directions(Bo, pos_x, pos_y, color_sign, directions):
             ny += dy
     return moves
 
-def king_in_danger(board, color):
+def king_in_danger(board, color_sign):
     # board est le plateau après le déplacement effectué
+    # color_sign est 1 pour les blancs et -1 pour les noirs
+    opponent_sign = -color_sign
 
     # position du roi
-    king_pos = None
-    for x in range(8):
-        for y in range(8):
-            if (board[x][y] == 5 and color == 'w') or (board[x][y] == -5 and color == 'b'):
-                king_pos = (x, y)
-                break
-        if king_pos:
-            break
+    king_pos = pos_roi(board, color_sign)
 
     if not king_pos:
         return 0  #roi pas trouvé
 
     # checker si une pièce ennemie peut capturer le roi
-    opponent_color = 'b' if color == 'w' else 'w'
-    opponent_sign = -1 if color == 'w' else 1
 
     for x in range(8):
         for y in range(8):
             piece = board[x][y]
-            if piece * opponent_sign > 0:  # Piece ennemie
+            if piece * color_sign < 0:  # Piece ennemie
                 if  piece == opponent_sign * 1:
-                    if king_pos in tour(x, y, board, opponent_color):
+                    if king_pos in tour(x, y, board, opponent_sign):
                         return -500
                 elif piece == opponent_sign * 2:
                     if king_pos in cavalier(x, y, board, opponent_sign):
                         return -500
                 elif piece == opponent_sign * 3:
-                    if king_pos in fou(x, y, board, opponent_color):
+                    if king_pos in fou(x, y, board, opponent_sign):
                         return -500
                 elif piece == opponent_sign * 4:
-                    if king_pos in reine(x, y, board, opponent_color):
+                    if king_pos in reine(x, y, board, opponent_sign):
                         return -500
                 elif piece == opponent_sign * 6:
                     if king_pos in pion(x, y, board, opponent_sign):
