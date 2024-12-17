@@ -1,6 +1,4 @@
 import random
-from collections import deque
-
 #
 #   Example function to be implemented for
 #       Single important function is next_best
@@ -10,7 +8,7 @@ from collections import deque
 #
 
 from PyQt6 import QtCore
-
+from collections import deque
 #   Be careful with modules to import from the root (don't forget the Bots.)
 from Bots.ChessBotList import register_chess_bot
 
@@ -97,7 +95,6 @@ def cavalier(pos_x, pos_y, Bo, color_sign):
     return deplacements
 
 def pion(pos_x, pos_y, Bo, color_sign):
-
     deplacements = []
     direction = 1
 
@@ -138,7 +135,15 @@ def tour(pos_x, pos_y, Bo, color_sign):
     """
     directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Haut, Bas, Gauche, Droite
     return get_moves_directions(Bo, pos_x, pos_y, color_sign, directions)
-
+def reine(pos_x, pos_y, Bo, color_sign):
+    """
+    Génère les déplacements possibles pour une reine.
+    """
+    directions = [
+        (-1, 0), (1, 0), (0, -1), (0, 1),  # Directions de la tour
+        (-1, -1), (-1, 1), (1, -1), (1, 1)  # Directions du fou
+    ]
+    return get_moves_directions(Bo, pos_x, pos_y, color_sign, directions)
 def fou(pos_x, pos_y, Bo, color_sign):
     """
     Génère les déplacements possibles pour un fou.
@@ -220,7 +225,7 @@ def get_moves_directions(Bo, pos_x, pos_y, color_sign, directions):
     moves = []
     for dx, dy in directions:
         nx, ny = pos_x + dx, pos_y + dy
-        while 0 <= nx < 8 and 0 <= ny < 8:  # Vérifie que la position reste sur le plateau
+        while 0 <= nx < 8 and 0 <= ny < 8:
             piece = Bo[nx][ny]
             if piece == 0:  # Case vide
                 moves.append((nx, ny))
@@ -357,6 +362,73 @@ def find_capture_move(board, color_sign):
         if board[x2][y2] * color_sign < 0:  # Pièce ennemie sur la case de destination
             return move
     return None
+#heurisitcs
+def heur_king_in_danger(board, color_sign):
+    # board est le plateau après le déplacement effectué
+    # color_sign est 1 pour les blancs et -1 pour les noirs
+    opponent_sign = -color_sign
+
+    # position du roi
+    king_pos = pos_roi(board, color_sign)
+
+    if not king_pos:
+        return 0  #roi pas trouvé
+
+    # checker si une pièce ennemie peut capturer le roi
+
+    for x in range(8):
+        for y in range(8):
+            piece = board[x][y]
+            if piece * color_sign < 0:  # Piece ennemie
+                if  piece == opponent_sign * 1:
+                    if king_pos in tour(x, y, board, opponent_sign):
+                        return -500
+                elif piece == opponent_sign * 2:
+                    if king_pos in cavalier(x, y, board, opponent_sign):
+                        return -500
+                elif piece == opponent_sign * 3:
+                    if king_pos in fou(x, y, board, opponent_sign):
+                        return -500
+                elif piece == opponent_sign * 4:
+                    if king_pos in reine(x, y, board, opponent_sign):
+                        return -500
+                elif piece == opponent_sign * 6:
+                    if king_pos in pion(x, y, board, opponent_sign):
+                        return -500
+                elif piece == opponent_sign * 5:
+                    if king_pos in roi(x, y, board, opponent_sign):
+                        return -500
+
+    return 0  # Roi pas en danger
+
+def heur_capture(board, color_sign, x, y, piece_id):
+    score = 0
+    piece_possible_movement = []
+    match piece_id:
+        case 1:
+            piece_possible_movement = tour(x, y, board, color_sign)
+        case 2:
+            piece_possible_movement = cavalier(x, y, board, color_sign)
+        case 3:
+            piece_possible_movement = fou(x, y, board, color_sign)
+        case 4:
+            piece_possible_movement = reine(x, y, board, color_sign)
+        case 5:
+            piece_possible_movement = roi(x, y, board, color_sign)
+        case 6:
+            piece_possible_movement = pion(x, y, board, color_sign)
+
+    for t in range(len(piece_possible_movement)):
+        nx, ny = piece_possible_movement[t]
+        if board[nx][ny] * color_sign < 0:  # si un ennemi est dans une des cases
+            # TODO si chaque piece a un poids, donner + de score à celui qui a une différence de poids negative + grande (Ex: un pion qui mange la reine a + de score qu'une reine qui mange un pion)
+            score += 200
+            return score, (x,y,nx,ny)
+
+
+    return score, (x, y, x, y)
+
+
 #   Example how to register the function
 register_chess_bot("capture", chess_bot_capture)
 register_chess_bot("basique", chess_bot_basic)
