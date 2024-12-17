@@ -315,7 +315,7 @@ def score_board(board, color_sign):
 
     return score
 
-def bfs_best_move(board, color_sign, depth=1):
+def bfs_best_move(board, color_sign, depth=2):
     """
     Implémente un BFS simple pour trouver le meilleur déplacement possible.
     :param board: Plateau initial
@@ -323,35 +323,33 @@ def bfs_best_move(board, color_sign, depth=1):
     :param depth: Profondeur maximale de recherche
     :return: Meilleur déplacement sous la forme (x1, y1, x2, y2)
     """
-    queue = deque([(board, None, 0)])  # (plateau, déplacement, profondeur)
+    queue = deque()
     best_move = None
     best_score = float('-inf')
-    first_level_moves = []
+    first_moves = []
+
+    # Ajout des déplacements initiaux
+    moves = generer_deplacements(board, color_sign)
+    for move in moves:
+        new_board = appliquer_deplacement(board, move)
+        queue.append((new_board, move, 1))
+        first_moves.append(move)
 
     while queue:
-        current_board, last_move, current_depth = queue.popleft()
-
-        if current_depth == 0:
-            first_level_moves.append(last_move)
+        current_board, current_move, current_depth = queue.popleft()
 
         if current_depth < depth:
+            # Générer les déplacements suivants
             moves = generer_deplacements(current_board, color_sign)
             for move in moves:
                 new_board = appliquer_deplacement(current_board, move)
-                queue.append((new_board, move, current_depth + 1))
-
+                queue.append((new_board, current_move, current_depth + 1))
         else:
             # Évalue le score à la profondeur maximale
             score = score_board(current_board, color_sign)
             if score > best_score:
                 best_score = score
-                best_move = last_move
-
-    # Si un meilleur mouvement a été trouvé, assurez-vous qu'il provient du premier niveau
-    if best_move:
-        for move in first_level_moves:
-            if move and appliquer_deplacement(board, move) == appliquer_deplacement(board, best_move):
-                return move
+                best_move = current_move
 
     return best_move
 
