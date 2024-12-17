@@ -78,7 +78,76 @@ def chess_bot_basic(player_sequence, board, time_budget, **kwargs):
     x1, y1, x2, y2 = meilleur_deplacement
     return (x1, y1), (x2, y2)
 
+def chess_bot_capture_king(player_sequence, board, time_budget, **kwargs):
+    color = player_sequence[1]
+    color_sign = 1 if color == 'w' else -1
+    B = [[0 for _ in range(8)] for _ in range(8)]
 
+    # Conversion du plateau en entiers
+    for x in range(board.shape[0]):
+        for y in range(board.shape[1]):
+            match board[x][y]:
+                case "rw": B[x][y] = 1
+                case "nw": B[x][y] = 2
+                case "bw": B[x][y] = 3
+                case "qw": B[x][y] = 4
+                case "kw": B[x][y] = 5
+                case "pw": B[x][y] = 6
+                case "rb": B[x][y] = -1
+                case "nb": B[x][y] = -2
+                case "bb": B[x][y] = -3
+                case "qb": B[x][y] = -4
+                case "kb": B[x][y] = -5
+                case "pb": B[x][y] = -6
+                case _: B[x][y] = 0
+
+
+    # Capture king
+    capture_king = king_capture_move(B,color_sign)
+    if capture_king:
+        x1,y1,x2,y2 = capture_king
+        return (x1,y1),(x2,y2)
+    # Vérifie si une capture est possible
+    capture_move = find_capture_move(B, color_sign)
+    if capture_move:
+        x1, y1, x2, y2 = capture_move
+        return (x1, y1), (x2, y2)
+    # Déplacement temporaire
+    meilleur_deplacement = bfs_best_move(B, color_sign)
+    x1, y1, x2, y2 = meilleur_deplacement
+    return (x1, y1), (x2, y2)
+
+def chess_bot_basic_with_capture_king(player_sequence, board, time_budget, **kwargs):
+    color = player_sequence[1]
+    color_sign = 1 if color == 'w' else -1
+    B = [[0 for _ in range(8)] for _ in range(8)]
+
+    # Conversion du plateau en entiers
+    for x in range(board.shape[0]):
+        for y in range(board.shape[1]):
+            match board[x][y]:
+                case "rw": B[x][y] = 1
+                case "nw": B[x][y] = 2
+                case "bw": B[x][y] = 3
+                case "qw": B[x][y] = 4
+                case "kw": B[x][y] = 5
+                case "pw": B[x][y] = 6
+                case "rb": B[x][y] = -1
+                case "nb": B[x][y] = -2
+                case "bb": B[x][y] = -3
+                case "qb": B[x][y] = -4
+                case "kb": B[x][y] = -5
+                case "pb": B[x][y] = -6
+                case _: B[x][y] = 0
+    # Capture king
+    capture_king = king_capture_move(B,color_sign)
+    if capture_king:
+        x1,y1,x2,y2 = capture_king
+        return (x1,y1),(x2,y2)
+    # Déplacement temporaire
+    meilleur_deplacement = bfs_best_move(B, color_sign)
+    x1, y1, x2, y2 = meilleur_deplacement
+    return (x1, y1), (x2, y2)
 
 def cavalier(pos_x, pos_y, Bo, color_sign):
     mouvements = [
@@ -426,7 +495,14 @@ def heur_capture(board, color_sign, x, y, piece_id):
 
     return score, (x, y, x, y)
 
-
+def king_capture_move(board, color_sign):
+    for move in generer_deplacements(board, color_sign):
+        x1, y1, x2, y2 = move
+        if abs(board[x2][y2]) == 5:  # Roi ennemi sur la case de destination
+            return move
+    return None
 #   Example how to register the function
 register_chess_bot("capture", chess_bot_capture)
 register_chess_bot("basique", chess_bot_basic)
+register_chess_bot("capture_king", chess_bot_capture_king)
+register_chess_bot("basic_capture_king", chess_bot_basic_with_capture_king)
