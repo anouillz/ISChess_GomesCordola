@@ -1,4 +1,6 @@
 import random
+
+import numpy as np
 #
 #   Example function to be implemented for
 #       Single important function is next_best
@@ -74,7 +76,7 @@ def chess_bot_basic(player_sequence, board, time_budget, **kwargs):
                 case _: B[x][y] = 0
 
     # Déplacement temporaire
-    meilleur_deplacement = bfs_best_move(B, color_sign)
+    meilleur_deplacement = dfs_main(B, color_sign,2)
     x1, y1, x2, y2 = meilleur_deplacement
     return (x1, y1), (x2, y2)
 
@@ -146,6 +148,37 @@ def chess_bot_basic_with_capture_king(player_sequence, board, time_budget, **kwa
         return (x1,y1),(x2,y2)
     # Déplacement temporaire
     meilleur_deplacement = bfs_best_move(B, color_sign)
+    x1, y1, x2, y2 = meilleur_deplacement
+    return (x1, y1), (x2, y2)
+def chess_bot_basic_with_capture_king_DFS(player_sequence, board, time_budget, **kwargs):
+    color = player_sequence[1]
+    color_sign = 1 if color == 'w' else -1
+    B = [[0 for _ in range(8)] for _ in range(8)]
+
+    # Conversion du plateau en entiers
+    for x in range(board.shape[0]):
+        for y in range(board.shape[1]):
+            match board[x][y]:
+                case "rw": B[x][y] = 1
+                case "nw": B[x][y] = 2
+                case "bw": B[x][y] = 3
+                case "qw": B[x][y] = 4
+                case "kw": B[x][y] = 5
+                case "pw": B[x][y] = 6
+                case "rb": B[x][y] = -1
+                case "nb": B[x][y] = -2
+                case "bb": B[x][y] = -3
+                case "qb": B[x][y] = -4
+                case "kb": B[x][y] = -5
+                case "pb": B[x][y] = -6
+                case _: B[x][y] = 0
+    # Capture king
+    capture_king = king_capture_move(B,color_sign)
+    if capture_king:
+        x1,y1,x2,y2 = capture_king
+        return (x1,y1),(x2,y2)
+    # Déplacement temporaire
+    meilleur_deplacement = dfs_main(B, color_sign,2)
     x1, y1, x2, y2 = meilleur_deplacement
     return (x1, y1), (x2, y2)
 
@@ -384,7 +417,137 @@ def score_board(board, color_sign):
 
     return score
 
-def bfs_best_move(board, color_sign, depth=2):
+def dfs_best_move(board, color_sign, depth, max_depth, is_player_turn=True):
+    """
+    Implémente un DFS pour évaluer les scores du joueur et de l'adversaire.
+    :param board: Plateau actuel
+    :param color_sign: +1 pour les blancs, -1 pour les noirs
+    :param depth: Profondeur actuelle de recherche
+    :param max_depth: Profondeur maximale de recherche
+    :param is_player_turn: Booléen pour différencier le joueur et l'adversaire
+    :return: (meilleur_score, meilleur_mouvement)
+    """
+    if depth == max_depth:
+        # Évaluation des scores à la profondeur maximale
+        player_score = evaluate_board(board, color_sign)
+        opponent_score = evaluate_board(board, -color_sign)
+        print("score: ", player_score - opponent_score)
+        return player_score - opponent_score, None
+
+    best_score = float('-inf') if is_player_turn else float('inf')  # Maximisation / Minimisation
+    best_move = None
+
+    # Générer les déplacements pour le joueur ou l'adversaire
+    moves = generer_deplacements(board, color_sign if is_player_turn else -color_sign)
+    for move in moves:
+        # Appliquer le mouvement
+        new_board = appliquer_deplacement(board, move)
+
+        # Vérifier la sécurité du roi
+        if heur_king_in_danger(new_board, color_sign if is_player_turn else -color_sign):
+            continue
+
+        # Appel récursif en alternant le tour
+        score, _ = dfs_best_move(
+            new_board,
+            color_sign,
+            depth + 1,
+            max_depth,
+            is_player_turn=not is_player_turn  # Alterner le tour
+        )
+
+        # Maximisation pour le joueur, minimisation pour l'adversaire
+        if is_player_turn:
+            if score > best_score:
+                best_score = score
+                best_move = move
+        else:
+            if score < best_score:
+                best_score = score
+                best_move = move
+
+    return best_score, best_move
+def evaluate_board(board, color_sign):
+    """
+    Évalue le plateau en fonction d'une combinaison d'heuristiques :
+    - Valeur des pièces restantes
+    - Opportunités de captures immédiates
+    - Sécurité du roi
+    - Positionnement stratégique (centralité)
+    :param board: Plateau actuel
+    :param color_sign: +1 pour les blancs, -1 pour les noirs
+    :return: Score calculé
+    """
+    # Valeurs des pièces
+    piece_values = {
+        1: 5,   # Tour
+        2: 3,   # Cavalier
+        3: 3,   # Fou
+        4: 9,   # Reine
+        5: 100, # Roi
+        6: 1    # Pion
+    }
+
+    # Pondération pour le contrôle central
+    center_bonus = [
+        [1, 1, 2, 2, 2, 2, 1, 1],
+        [1, 2, 3, 3, 3, 3, 2, 1],
+        [2, 3, 4, 4, 4, 4, 3, 2],
+        [2, 3, 4, 5, 5, 4, 3, 2],
+        [2, 3, 4, 5, 5, 4, 3, 2],
+        [2, 3, 4, 4, 4, 4, 3, 2],
+        [1, 2, 3, 3, 3, 3, 2, 1],
+        [1, 1, 2, 2, 2, 2, 1, 1]
+    ]
+
+    ally_score = 0
+    enemy_score = 0
+    capture_score = 0
+    king_in_danger_penalty = 0
+
+    # Analyse du plateau
+    for x in range(8):
+        for y in range(8):
+            piece = board[x][y]
+            if piece == 0:
+                continue
+
+            value = piece_values.get(abs(piece), 0)
+            if piece * color_sign > 0:  # Pièce alliée
+                ally_score += value
+                ally_score += center_bonus[x][y]  # Bonus pour centralité
+            else:  # Pièce ennemie
+                enemy_score += value
+
+            # Opportunités de capture
+            if piece * color_sign > 0:  # Pièce alliée
+                for move in generer_deplacements(board, color_sign):
+                    x1, y1, x2, y2 = move
+                    target_piece = board[x2][y2]
+                    if target_piece * -color_sign > 0:  # Capture possible
+                        capture_score += piece_values.get(abs(target_piece), 0)
+
+    # Vérification du roi
+    if heur_king_in_danger(board, color_sign):
+        king_in_danger_penalty = -500  # Pénalité importante si le roi est en danger
+
+    # Score total
+    total_score = (ally_score - enemy_score) + capture_score + king_in_danger_penalty
+    return total_score
+
+
+def dfs_main(board, color_sign, max_depth):
+    """
+    Point d'entrée pour la recherche DFS.
+    :param board: Plateau initial
+    :param color_sign: Couleur du joueur (1 pour blanc, -1 pour noir)
+    :param max_depth: Profondeur maximale
+    :return: Meilleur déplacement
+    """
+    _, best_move = dfs_best_move(board, color_sign, 0, max_depth)
+    return best_move
+
+def bfs_best_move(board, color_sign, depth=1):
     """
     Implémente un BFS simple pour trouver le meilleur déplacement possible.
     :param board: Plateau initial
@@ -400,8 +563,10 @@ def bfs_best_move(board, color_sign, depth=2):
     # Ajout des déplacements initiaux
     moves = generer_deplacements(board, color_sign)
     for move in moves:
+
         new_board = appliquer_deplacement(board, move)
-        queue.append((new_board, move, 1))
+        if not heur_king_in_danger(new_board,color_sign):
+            queue.append((new_board, move, 1))
         first_moves.append(move)
 
     while queue:
@@ -412,7 +577,8 @@ def bfs_best_move(board, color_sign, depth=2):
             moves = generer_deplacements(current_board, color_sign)
             for move in moves:
                 new_board = appliquer_deplacement(current_board, move)
-                queue.append((new_board, current_move, current_depth + 1))
+                if not heur_king_in_danger(new_board,color_sign):
+                    queue.append((new_board, current_move, current_depth + 1))
         else:
             # Évalue le score à la profondeur maximale
             score = score_board(current_board, color_sign)
@@ -429,6 +595,7 @@ def find_capture_move(board, color_sign):
         if board[x2][y2] * color_sign < 0:  # Pièce ennemie sur la case de destination
             return move
     return None
+
 #heurisitcs
 def heur_king_in_danger(board, color_sign):
     # board est le plateau après le déplacement effectué
@@ -449,24 +616,24 @@ def heur_king_in_danger(board, color_sign):
             if piece * color_sign < 0:  # Piece ennemie
                 if  piece == opponent_sign * 1:
                     if king_pos in tour(x, y, board, opponent_sign):
-                        return -500
+                        return True
                 elif piece == opponent_sign * 2:
                     if king_pos in cavalier(x, y, board, opponent_sign):
-                        return -500
+                        return True
                 elif piece == opponent_sign * 3:
                     if king_pos in fou(x, y, board, opponent_sign):
-                        return -500
+                        return True
                 elif piece == opponent_sign * 4:
                     if king_pos in reine(x, y, board, opponent_sign):
-                        return -500
+                        return True
                 elif piece == opponent_sign * 6:
                     if king_pos in pion(x, y, board, opponent_sign):
-                        return -500
+                        return True
                 elif piece == opponent_sign * 5:
                     if king_pos in roi(x, y, board, opponent_sign):
-                        return -500
+                        return True
 
-    return 0  # Roi pas en danger
+    return False  # Roi pas en danger
 
 def heur_capture(board, color_sign, x, y, piece_id):
     score = 0
@@ -506,3 +673,4 @@ register_chess_bot("capture", chess_bot_capture)
 register_chess_bot("basique", chess_bot_basic)
 register_chess_bot("capture_king", chess_bot_capture_king)
 register_chess_bot("basic_capture_king", chess_bot_basic_with_capture_king)
+register_chess_bot("basic_capture_king_DFS", chess_bot_basic_with_capture_king_DFS)
