@@ -150,6 +150,7 @@ def chess_bot_basic_with_capture_king(player_sequence, board, time_budget, **kwa
     meilleur_deplacement = bfs_best_move(B, color_sign)
     x1, y1, x2, y2 = meilleur_deplacement
     return (x1, y1), (x2, y2)
+
 def chess_bot_basic_with_capture_king_DFS(player_sequence, board, time_budget, **kwargs):
     color = player_sequence[1]
     color_sign = 1 if color == 'w' else -1
@@ -195,7 +196,6 @@ def cavalier(pos_x, pos_y, Bo, color_sign):
             if piece == 0 or (piece * color_sign < 0):  # Vide ou pièce ennemie
                 deplacements.append((nx, ny))
     return deplacements
-
 def pion(pos_x, pos_y, Bo, color_sign):
     deplacements = []
     direction = 1
@@ -213,7 +213,6 @@ def pion(pos_x, pos_y, Bo, color_sign):
                 deplacements.append((nx, ny))
 
     return deplacements
-
 def roi(pos_x, pos_y, Bo, color_sign):
     mouvements = [
         (-1, -1), (-1, 0), (-1, 1),  # Haut gauche, haut, haut droite
@@ -230,7 +229,6 @@ def roi(pos_x, pos_y, Bo, color_sign):
                 deplacements.append((nx, ny))
 
     return deplacements
-
 def tour(pos_x, pos_y, Bo, color_sign):
     """
     Génère les déplacements possibles pour une tour.
@@ -260,7 +258,6 @@ def pos_pions(Bo, color_sign):
             if Bo[x][y] == 6 * color_sign:
                 positions.append((x, y))
     return positions
-
 def pos_cavaliers(Bo, color_sign):
     positions = []
     for x in range(8):
@@ -268,7 +265,6 @@ def pos_cavaliers(Bo, color_sign):
             if Bo[x][y] == 2 * color_sign:
                 positions.append((x, y))
     return positions
-
 def pos_roi(Bo, color_sign):
 
     for x in range(8):
@@ -276,7 +272,6 @@ def pos_roi(Bo, color_sign):
             if Bo[x][y] == 5 * color_sign:  # Roi blanc = 5, roi noir = -5
                 return x, y
     return None  # Si le roi n'est pas trouvé
-
 def pos_tour(Bo, color_sign):
     """
     Trouve toutes les positions des tours alliées.
@@ -287,7 +282,6 @@ def pos_tour(Bo, color_sign):
             if Bo[x][y] == 1 * color_sign:  # Tour blanche = 1, tour noire = -1
                 positions.append((x, y))
     return positions
-
 def pos_fou(Bo, color_sign):
     """
     Trouve toutes les positions des fous alliés.
@@ -298,17 +292,6 @@ def pos_fou(Bo, color_sign):
             if Bo[x][y] == 3 * color_sign:  # Fou blanc = 3, fou noir = -3
                 positions.append((x, y))
     return positions
-
-def reine(pos_x, pos_y, Bo, color_sign):
-    """
-    Génère les déplacements possibles pour une reine.
-    """
-    directions = [
-        (-1, 0), (1, 0), (0, -1), (0, 1),  # Directions de la tour
-        (-1, -1), (-1, 1), (1, -1), (1, 1)  # Directions du fou
-    ]
-    return get_moves_directions(Bo, pos_x, pos_y, color_sign, directions)
-
 def pos_reine(Bo, color_sign):
     """
     Trouve toutes les positions des reines alliées.
@@ -385,6 +368,7 @@ def generer_deplacements(Bo, color_sign):
                     moves = reine(x, y, Bo, color_sign)
                     deplacements.extend([(x, y, nx, ny) for nx, ny in moves])
     return deplacements
+
 
 # Partie BFS
 
@@ -466,7 +450,11 @@ def dfs_best_move(board, color_sign, depth, max_depth, is_player_turn=True):
                 best_score = score
                 best_move = move
 
+    print("Best score: ", best_score)
+
     return best_score, best_move
+
+
 def evaluate_board(board, color_sign):
     """
     Évalue le plateau en fonction d'une combinaison d'heuristiques :
@@ -478,6 +466,7 @@ def evaluate_board(board, color_sign):
     :param color_sign: +1 pour les blancs, -1 pour les noirs
     :return: Score calculé
     """
+
     # Valeurs des pièces
     piece_values = {
         1: 5,   # Tour
@@ -535,6 +524,20 @@ def evaluate_board(board, color_sign):
     total_score = (ally_score - enemy_score) + capture_score + king_in_danger_penalty
     return total_score
 
+def evaluate_bo(board, color_sign):
+    # Valeurs des pièces
+    piece_values = {
+        1: 5,  # Tour
+        2: 3,  # Cavalier
+        3: 3,  # Fou
+        4: 9,  # Reine
+        5: 100,  # Roi
+        6: 1  # Pion
+    }
+
+    
+
+
 
 def dfs_main(board, color_sign, max_depth):
     """
@@ -588,6 +591,7 @@ def bfs_best_move(board, color_sign, depth=1):
 
     return best_move
 
+
 def find_capture_move(board, color_sign):
 
     for move in generer_deplacements(board, color_sign):
@@ -596,9 +600,21 @@ def find_capture_move(board, color_sign):
             return move
     return None
 
+
 #heurisitcs
+
+#get total nb of pieces in the board
+def get_nb_pieces(board):
+    count = 0
+    for x in range(len(board)):
+        for y in range(len(board)):
+            if board[x][y] != 0:
+                count += 1
+    return count
+
+# pas nécessaire si on utilse notre bot pour prévoir le move de l'adversaire
 def heur_king_in_danger(board, color_sign):
-    # board est le plateau après le déplacement effectué
+    # board est le plateau actuel
     # color_sign est 1 pour les blancs et -1 pour les noirs
     opponent_sign = -color_sign
 
@@ -662,13 +678,181 @@ def heur_capture(board, color_sign, x, y, piece_id):
 
     return score, (x, y, x, y)
 
+def heur_center(board, color_sign, x, y, piece_id):
+    score = 0
+    best_center_positions = [(3,3),(3,4),(4,3),(4,4)]
+    center_positions = [(2,2),(2,3),(2,4),(2,5),(3,2),(3,5),(4,2),(4,5),(5,2),(5,3),(5,4),(5,5)]
+    piece_possible_move = []
+
+    if get_nb_pieces(board) < 29:
+        #if piece can go to center, +++ score
+        match piece_id:
+            case 2:
+                piece_possible_move = cavalier(x,y,board,color_sign)
+            case 3:
+                piece_possible_move = fou(x,y,board,color_sign)
+            case 6:
+                piece_possible_move = pion(x,y,board,color_sign)
+
+            #TODO ajouter dautre pièces qui pourraient être utiles au centre du plateau, si besoin
+
+        for t in range(len(piece_possible_move)):
+            nx, ny = piece_possible_move[t]
+            if (nx,ny) in center_positions:
+                score += 200
+                return score, (x,y,nx,ny)
+            elif (nx,ny) in best_center_positions:
+                score += 500
+                return score, (x,y,nx,ny)
+
+    #returns nothing if less than 29 pieces or if no possible moves to the center
+    return None
+
 def king_capture_move(board, color_sign):
     for move in generer_deplacements(board, color_sign):
         x1, y1, x2, y2 = move
         if abs(board[x2][y2]) == 5:  # Roi ennemi sur la case de destination
             return move
     return None
-#   Example how to register the function
+
+
+#alpha beta tests
+
+def heuristic_king_capture(board, color_sign):
+    """
+    Assign a very high score if the opponent's king can be captured.
+    """
+    for move in generer_deplacements(board, color_sign):
+        x1, y1, x2, y2 = move
+        if abs(board[x2][y2]) == 5:  # King identified by value 5
+            return 10000  # Extremely high score for capturing the king
+    return 0
+
+def heuristic_low_value_capture_high(board, color_sign):
+    """
+    Assign a high score if a low-value piece can capture a higher-value piece.
+    """
+    piece_values = {
+        1: 5,  # Rook
+        2: 3,  # Knight
+        3: 3,  # Bishop
+        4: 9,  # Queen
+        5: 100,  # King
+        6: 1  # Pawn
+    }
+
+    score = 0
+    for move in generer_deplacements(board, color_sign):
+        x1, y1, x2, y2 = move
+        attacker = abs(board[x1][y1])
+        target = abs(board[x2][y2])
+        if board[x2][y2] * color_sign < 0:  # Target is an opponent piece
+            if target > attacker:  # Higher-value piece being captured
+                score += (piece_values[target] - piece_values[attacker]) * 10
+    return score
+
+def heuristic_control_center(board, color_sign):
+    """
+    Assign a score for controlling the center of the board,
+    but only if fewer than 5 pieces have been captured.
+    """
+    center_positions = [(3, 3), (3, 4), (4, 3), (4, 4)]
+    score = 0
+
+    # Check if fewer than 5 pieces have been captured
+    total_pieces = sum(1 for row in board for cell in row if cell != 0)
+    if total_pieces >= 27:  # 32 - 5 pieces = 27 remaining
+        return 0
+
+    for x, y in center_positions:
+        piece = board[x][y]
+        if piece * color_sign > 0:  # Ally piece in center
+            score += 50
+    return score
+
+def evaluate_board_alpha_beta(board, color_sign):
+    """
+    Combine all heuristics to evaluate the board.
+    """
+    score = 0
+    score += heuristic_king_capture(board, color_sign)
+    score += heuristic_low_value_capture_high(board, color_sign)
+    score += heuristic_control_center(board, color_sign)
+    return score
+
+
+def alpha_beta_pruning(board, depth, alpha, beta, maximizing_player, color_sign):
+    """
+    Alpha-Beta pruning implementation to determine the best move.
+    """
+    if depth == 0 or heur_king_in_danger(board, color_sign):
+        return evaluate_board_alpha_beta(board, color_sign), None
+
+    best_move = None
+    moves = generer_deplacements(board, color_sign if maximizing_player else -color_sign)
+
+    if maximizing_player:
+        max_eval = -float('inf')
+        for move in moves:
+            new_board = appliquer_deplacement(board, move)
+            eval, _ = alpha_beta_pruning(new_board, depth - 1, alpha, beta, False, color_sign)
+            if eval > max_eval:
+                max_eval = eval
+                best_move = move
+            alpha = max(alpha, eval)
+            if beta <= alpha:
+                break
+        return max_eval, best_move
+    else:
+        min_eval = float('inf')
+        for move in moves:
+            new_board = appliquer_deplacement(board, move)
+            eval, _ = alpha_beta_pruning(new_board, depth - 1, alpha, beta, True, color_sign)
+            if eval < min_eval:
+                min_eval = eval
+                best_move = move
+            beta = min(beta, eval)
+            if beta <= alpha:
+                break
+        return min_eval, best_move
+
+def chess_bot_alpha_beta(player_sequence, board, time_budget, **kwargs):
+    color = player_sequence[1]
+    color_sign = 1 if color == 'w' else -1
+    B = [[0 for _ in range(8)] for _ in range(8)]
+
+    # Conversion du plateau en entiers
+    for x in range(board.shape[0]):
+        for y in range(board.shape[1]):
+            match board[x][y]:
+                case "rw": B[x][y] = 1
+                case "nw": B[x][y] = 2
+                case "bw": B[x][y] = 3
+                case "qw": B[x][y] = 4
+                case "kw": B[x][y] = 5
+                case "pw": B[x][y] = 6
+                case "rb": B[x][y] = -1
+                case "nb": B[x][y] = -2
+                case "bb": B[x][y] = -3
+                case "qb": B[x][y] = -4
+                case "kb": B[x][y] = -5
+                case "pb": B[x][y] = -6
+                case _: B[x][y] = 0
+
+    _, best_move = alpha_beta_pruning(B, depth=4, alpha=-float('inf'), beta=float('inf'), maximizing_player=True, color_sign=color_sign)
+
+    if best_move:
+        x1, y1, x2, y2 = best_move
+        return (x1, y1), (x2, y2)
+    else:
+        return None
+
+# Register the bot
+register_chess_bot("alpha_beta", chess_bot_alpha_beta)
+
+
+
+# bots
 register_chess_bot("capture", chess_bot_capture)
 register_chess_bot("basique", chess_bot_basic)
 register_chess_bot("capture_king", chess_bot_capture_king)
